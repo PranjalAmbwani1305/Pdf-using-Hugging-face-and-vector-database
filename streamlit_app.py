@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import uuid
 
-pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east1-gcp") 
+pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east-1") 
 index = pinecone.Index(textembedding)
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2" 
