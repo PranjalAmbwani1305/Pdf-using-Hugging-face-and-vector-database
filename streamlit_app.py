@@ -6,8 +6,8 @@ from tqdm import tqdm
 import os
 
 # Step 1: Initialize Pinecone
-PINECONE_API_KEY = "your-pinecone-api-key"
-pinecone.init(api_key=PINECONE_API_KEY, environment="gcp-starter")  # Update the environment if needed
+PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
+pinecone.init(api_key=PINECONE_API_KEY, environment="us-east-1")  # Update the environment if needed
 
 index_name = "pdf-embeddings"
 if index_name not in pinecone.list_indexes():
