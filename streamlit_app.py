@@ -2,7 +2,7 @@ import streamlit as st
 import fitz
 import requests
 import pinecone
-from sentence_transformers import SentenceTransformer
+import  sentence_transformers 
 
 # Initialize Pinecone
 pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east1-gcp")
