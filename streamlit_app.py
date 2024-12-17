@@ -10,7 +10,7 @@ pinecone_api_key = st.secrets["pinecone"]["api_key"]
 pinecone.init(api_key=pinecone_api_key, environment="us-east1-gcp")
 
 index_name = "pdf-index"
-dimension = 384
+dimension = 1536
 metric = "cosine"
 
 if index_name not in pinecone.list_indexes():
