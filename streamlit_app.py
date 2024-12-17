@@ -1,16 +1,18 @@
+import streamlit as st
+import fitz
+import pinecone
 import PyPDF2
 from transformers import pipeline
-import pinecone
-import streamlit as st
+import numpy as np
+from PIL import Image
+import io
 
 api_key = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
 environment = "us-east1-gcp"
-
 pinecone.init(api_key=api_key, environment=environment)
 
 index_name = "textembedding"
 index = pinecone.Index(index_name)
-
 
 model_name = "all-MiniLM-L6-v2"
 encoder = pipeline("feature-extraction", model=model_name)
@@ -26,23 +28,21 @@ def extract_text_from_pdf(pdf_path):
 
 def generate_embeddings(text):
     embeddings = encoder(text)[0]
-    return embeddings
+    embeddings = np.mean(embeddings, axis=0)
+    return embeddings.tolist()
 
-def store_embeddings_in_pinecone(text, embeddings):
-    index.upsert([
-        {
-            "id": "document_id", 
-            "vector": embeddings,
-            "metadata": {
-                "text": text
-            }
-        }
-    ])
+def store_embeddings_in_pinecone(text, embeddings, doc_id):
+    index.upsert([{
+        "id": doc_id,
+        "vector": embeddings,
+        "metadata": {"text": text}
+    }])
 
 def search_in_pinecone(query):
     query_embedding = generate_embeddings(query)
     results = index.query(vector=query_embedding, top_k=5)
     return results
+
 def main():
     st.title("PDF Viewer and Embedding App")
 
@@ -63,23 +63,19 @@ def main():
 
         page = pdf_document[page_number - 1]
         pix = page.get_pixmap()
-        img_bytes = pix.tobytes()
 
-        st.image(img_bytes, caption=f"Page {page_number}", use_column_width=True)
+        img = Image.open(io.BytesIO(pix.tobytes("png")))
+        st.image(img, caption=f"Page {page_number}", use_column_width=True)
 
-      
         page_text = page.get_text()
 
-        
-        embedding = embedding_model.encode(page_text)
+        embedding = generate_embeddings(page_text)
 
-        
         page_id = str(page_number)
-        index.upsert([(page_id, embedding)])
+        store_embeddings_in_pinecone(page_text, embedding, page_id)
 
         st.write(f"Embedding for page {page_number} has been stored in Pinecone.")
 
-        
         st.subheader("Extracted Text from Page:")
         st.text(page_text)
 
