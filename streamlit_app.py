@@ -12,7 +12,6 @@ try:
 
 except Exception as e:
     print(f"Error initializing Pinecone: {e}")
-  exit() 
 index_name = 'textembedding'
 vectors_to_insert = [
     ("vec1", np.random.rand(128).tolist()), 
