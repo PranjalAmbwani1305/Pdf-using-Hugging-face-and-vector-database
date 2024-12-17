@@ -4,7 +4,7 @@ import pinecone
 import streamlit as st
 
 
-pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-west1-gcp")
+pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east1-gcp")
 
 index_name = "textembedding"
 index = pinecone.Index(index_name)
