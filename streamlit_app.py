@@ -7,7 +7,7 @@ import numpy as np
 import uuid
 
 pinecone.init(api_key="pcsk_72TJAS_G158VSHz2aYjenwo2TbDvJju8o9PnqsaMRjk4v5ChFbh52QzrPrXq6dAy6TNTAV", environment="us-east1-gcp") 
-index = pinecone.Index(index_name)
+index = pinecone.Index(textembedding)
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2" 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
