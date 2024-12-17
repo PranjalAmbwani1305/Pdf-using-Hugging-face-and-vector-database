@@ -85,6 +85,5 @@ def main():
                     st.write(f"Query result: {result}")
                 except Exception as e:
                     st.error(f"Error querying Pinecone: {e}")
-
 if __name__ == "__main__":
     main()
