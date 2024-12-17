@@ -1,0 +1,6 @@
+streamlit
+PyMuPDF
+transformers
+pinecone-client
+torch
+sentence-transformers
