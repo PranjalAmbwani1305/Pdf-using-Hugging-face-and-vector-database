@@ -1,10 +1,9 @@
 streamlit
-pinecone
-sentence-transformers
 transformers
+pinecone-client
 PyPDF2
-Pillow  
-PyMuPDF
+tqdm
+
 
 
 
