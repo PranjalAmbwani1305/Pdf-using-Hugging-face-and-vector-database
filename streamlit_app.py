@@ -6,7 +6,8 @@ import torch
 import numpy as np
 import uuid
 
-pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east1-gcp")
+pinecone_api_key = st.secrets["pinecone"]["api_key"]
+pinecone.init(api_key=pinecone_api_key, environment="us-east1-gcp")
 
 index_name = "pdf-index"
 dimension = 384
