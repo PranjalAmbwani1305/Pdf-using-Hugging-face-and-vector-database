@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import uuid
 
-pinecone_api_key = st.secrets["pinecone"]["api_key"]
+pinecone_api_key = st.secrets["PINECONE_API_KEY"]
 pinecone.init(api_key=pinecone_api_key, environment="us-east1-gcp")
 
 index_name = "pdf-index"
