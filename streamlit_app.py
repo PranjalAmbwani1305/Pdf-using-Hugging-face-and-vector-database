@@ -1,79 +1,64 @@
-import pinecone
 import streamlit as st
-import PyPDF2
-import sentence_transformers
-import huggingface_hub
+import fitz
+import torch
+from transformers import AutoTokenizer, AutoModel
+import numpy as np
+import pinecone
+import uuid
 
+pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw', environment='us-east1-gcp')
+index_name = 'pdf-embeddings'
 
-pinecone_api_key = st.secrets["PINECONE_API_KEY"]
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(index_name, dimension=384)
+index = pinecone.Index(index_name)
 
-try:
-    pinecone.init(
-        api_key=pinecone_api_key,
-        environment="us-east1-gcp"
-    )
-    st.success("Pinecone initialized successfully!")
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
 
-except Exception as e:
-    st.error(f"Failed to initialize Pinecone: {e}")
-    st.stop()
-
-index_name = "textembedding"
-
-try:
-    if index_name not in pinecone.list_indexes():
-        pinecone.create_index(index_name, dimension=768)
-        st.info(f"Index '{index_name}' created successfully.")
-    else:
-        st.info(f"Connected to existing index: 'textembedding'")
-    
-    index = pinecone.Index(index_name)
-
-except Exception as e:
-    st.error(f"Error with Pinecone index: {e}")
-    st.stop()
-
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-def extract_pdf_text(file):
-    pdf_reader = PyPDF2.PdfReader(file)
+def extract_text_from_pdf(pdf_file):
+    doc = fitz.open(pdf_file)
     text = ""
-    for page in pdf_reader.pages:
-        text += page.extract_text()
+    for page in doc:
+        text += page.get_text("text")
     return text
 
-uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+def generate_embeddings(text):
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+    with torch.no_grad():
+        embeddings = model(**inputs).last_hidden_state.mean(dim=1)
+    return embeddings.squeeze().numpy()
 
-if uploaded_file is not None:
-    pdf_text = extract_pdf_text(uploaded_file)
-    if pdf_text:
-        st.write("Extracted Text from PDF:")
-        st.write(pdf_text[:1000])
+def store_embeddings_in_pinecone(text, embeddings):
+    unique_id = str(uuid.uuid4())
+    metadata = {"source": "pdf"}
+    index.upsert([(unique_id, embeddings.tolist(), metadata)])
 
-        embeddings = model.encode([pdf_text])
+def main():
+    st.title("PDF Embeddings with Hugging Face and Pinecone")
 
-        try:
-            vector_data = [
-                ("pdf_vector_1", embeddings[0])
-            ]
-            index.upsert(vectors=vector_data)
-            st.info("PDF embeddings upserted ")
+    uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
+    
+    if uploaded_file:
+        pdf_text = extract_text_from_pdf(uploaded_file)
+        st.write("Text extracted from PDF:")
+        st.text_area("PDF Text", pdf_text, height=200)
 
-        except Exception as e:
-            st.error(f"Error during upsert: {e}")
-            st.stop()
+        embeddings = generate_embeddings(pdf_text)
+        
+        store_embeddings_in_pinecone(pdf_text, embeddings)
+        st.success("Embeddings successfully stored in Pinecone!")
 
-        try:
-            query_vector = model.encode(["sample query text to search"])
-            results = index.query(
-                query_vector=query_vector[0],
-                top_k=1,
-                include_metadata=True
-            )
-            st.write("Query Results:", results)
+        st.write("Embedding (first 10 values):", embeddings[:10])
 
-        except Exception as e:
-            st.error(f"Error during query: {e}")
-            st.stop()
-    else:
-        st.error("No text could be extracted from the PDF.")
+        query_text = st.text_input("Enter query text to search for similar embeddings:")
+        
+        if query_text:
+            query_embedding = generate_embeddings(query_text)
+            st.write("Query embedding generated.")
+            result = index.query(query_embedding.tolist(), top_k=1)
+            st.write(f"Query Result: {result}")
+
+if __name__ == "__main__":
+    main()
