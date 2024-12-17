@@ -5,7 +5,7 @@ from transformers import pipeline
 from tqdm import tqdm
 import os
 
-PINECONE_API_KEY = ""pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
+PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
 pinecone.init(api_key=PINECONE_API_KEY)
 
 
