@@ -3,7 +3,7 @@ import streamlit as st
 import PyPDF2
 import sentence_transformers
 import huggingface_hub
-from sentence_transformers import SentenceTransformer
+
 
 pinecone_api_key = st.secrets["PINECONE_API_KEY"]
 
@@ -25,7 +25,7 @@ try:
         pinecone.create_index(index_name, dimension=768)
         st.info(f"Index '{index_name}' created successfully.")
     else:
-        st.info(f"Connected to existing index: '{index_name}'")
+        st.info(f"Connected to existing index: 'textembedding'")
     
     index = pinecone.Index(index_name)
 
@@ -57,7 +57,7 @@ if uploaded_file is not None:
                 ("pdf_vector_1", embeddings[0])
             ]
             index.upsert(vectors=vector_data)
-            st.info("PDF embeddings upserted to Pinecone successfully.")
+            st.info("PDF embeddings upserted ")
 
         except Exception as e:
             st.error(f"Error during upsert: {e}")
