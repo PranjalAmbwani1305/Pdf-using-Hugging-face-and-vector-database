@@ -10,7 +10,7 @@ import io
 import os
 
 
-client = Client(api_key=api_key,"pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
+client = Client(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
 environment = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
 
 pinecone.init(api_key=api_key, environment=environment)
