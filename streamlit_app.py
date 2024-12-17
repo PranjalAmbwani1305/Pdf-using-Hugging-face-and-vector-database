@@ -4,9 +4,9 @@ import PyPDF2
 from transformers import pipeline
 from tqdm import tqdm
 import os
+import pinecone-client 
+pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east-1")
 
-from pinecone import Client
-client = Client(api_key= "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
 
 index_name = "textembeddings"
 if index_name not in pinecone.list_indexes():
