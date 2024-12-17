@@ -16,7 +16,7 @@ except Exception as e:
     st.error(f"Failed to initialize Pinecone: {e}")
     st.stop()
 
-index_name = "example-index"
+index_name = "textembedding"
 
 try:
     if index_name not in pinecone.list_indexes():
