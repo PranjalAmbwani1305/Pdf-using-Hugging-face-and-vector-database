@@ -1,6 +1,8 @@
 import pinecone
 import streamlit as st
 import PyPDF2
+import sentence_transformers
+import huggingface_hub
 from sentence_transformers import SentenceTransformer
 
 pinecone_api_key = st.secrets["PINECONE_API_KEY"]
