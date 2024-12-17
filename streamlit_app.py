@@ -5,9 +5,9 @@ from transformers import AutoTokenizer, AutoModel
 import numpy as np
 import pinecone
 import uuid
-
-pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw')
-
+import os 
+os.environ["PINECONE_API_KEY"] = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
+pinecone.init()
 index_name = 'textembedding'
 
 vectors_to_insert = [
