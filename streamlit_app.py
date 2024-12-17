@@ -1,61 +1,64 @@
 import streamlit as st
-
-import PyPDF2
-from transformers import pipeline
-from tqdm import tqdm
+import fitz  # PyMuPDF
+from sentence_transformers import SentenceTransformer
+import pinecone
 import os
-import pinecone  
-pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east-1")
 
+# Initialize Pinecone
+pinecone.init(api_key='YOUR_PINECONE_API_KEY', environment='YOUR_ENVIRONMENT')
 
-index_name = "textembeddings"
+# Create a new index if it doesn't exist
+index_name = 'pdf-embeddings'
 if index_name not in pinecone.list_indexes():
-    pinecone.create_index(index_name, dimension=1536)  
+    pinecone.create_index(index_name, dimension=384)  # 384 is the dimension for 'all-MiniLM-L6-v2'
+
+# Connect to the index
 index = pinecone.Index(index_name)
 
+# PDF Loader Class
+class PDFLoader:
+    def __init__(self, pdf_file):
+        self.pdf_file = pdf_file
 
-embed_model = pipeline("feature-extraction", model="sentence-transformers/all-MiniLM-L6-v2")
+    def extract_text(self):
+        doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        return text
 
-def extract_text_from_pdf(pdf_file):
-    text = ""
-    try:
-        reader = PyPDF2.PdfReader(pdf_file)
-        for page in reader.pages:
-            text += page.extract_text() or ""
-    except Exception as e:
-        st.error(f"Error extracting text: {e}")
-    return text
+# Embedding Generator Class
+class EmbeddingGenerator:
+    def __init__(self, model_name='all-MiniLM-L6-v2'):
+        self.model = SentenceTransformer(model_name)
 
-def process_and_store_embeddings(pdf_file, index):
-    st.info("Extracting text from PDF...")
-    text = extract_text_from_pdf(pdf_file)
-    if not text:
-        st.warning("No text found in the uploaded PDF.")
-        return
+    def generate_embeddings(self, text):
+        return self.model.encode(text)
 
-    chunks = [text[i:i+500] for i in range(0, len(text), 500)]
-    st.success(f"Split text into {len(chunks)} chunks.")
+# Function to store embeddings in Pinecone
+def store_embeddings(embeddings, metadata):
+    for i, embedding in enumerate(embeddings):
+        index.upsert([(f'doc-{i}', embedding, metadata[i])])
 
-    s
-    st.info("Generating embeddings...")
-    embeddings = []
-    for i, chunk in enumerate(tqdm(chunks, desc="Embedding chunks")):
-        embedding = embed_model(chunk, return_tensors="pt")[0].mean(dim=0).tolist()
-        embeddings.append((f"chunk-{i}", embedding))
+# Streamlit Application
+st.title("PDF Embedding Generator")
 
-    st.info("Storing embeddings in Pinecone...")
-    for chunk_id, embedding in embeddings:
-        index.upsert(vectors=[(chunk_id, embedding)])
-
-    st.success("Embeddings stored successfully!")
-
-
-st.title("PDF Embeddings Generator")
-st.write("Upload a PDF file to generate embeddings and store them in Pinecone.")
-
-uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
+uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
-    if st.button("Process PDF and Store Embeddings"):
-        with st.spinner("Processing..."):
-            process_and_store_embeddings(uploaded_file, index)
+    pdf_loader = PDFLoader(uploaded_file)
+    extracted_text = pdf_loader.extract_text()
+    
+    # Split text into chunks for embedding
+    text_chunks = extracted_text.split('\n\n')  # Split by paragraphs or use another method
+    embedding_generator = EmbeddingGenerator()
+    embeddings = embedding_generator.generate_embeddings(text_chunks)
+    
+    # Prepare metadata
+    metadata = [{'pdf_name': uploaded_file.name, 'chunk_number': i} for i in range(len(embeddings))]
+    
+    # Store embeddings in Pinecone
+    store_embeddings(embeddings, metadata)
+    
+    st.write("Embeddings generated and stored successfully!")
+    st.write(f"Total chunks processed: {len(embeddings)}")
