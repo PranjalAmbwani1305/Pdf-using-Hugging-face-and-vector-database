@@ -1,5 +1,5 @@
 import streamlit as st
-import pinecone
+from pinecone import Client
 import PyPDF2
 from transformers import pipeline
 from tqdm import tqdm
