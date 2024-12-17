@@ -9,7 +9,7 @@ import os
 PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
 pinecone.init(api_key=PINECONE_API_KEY, environment="us-east-1")  # Update the environment if needed
 
-index_name = "pdf-embeddings"
+index_name = "textembeddings"
 if index_name not in pinecone.list_indexes():
     pinecone.create_index(index_name, dimension=768)  # dimension matches the Hugging Face model
 index = pinecone.Index(index_name)
