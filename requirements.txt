@@ -1,8 +1,11 @@
+pip==23.3
+sentence-transformers==2.1.0
+huggingface_hub==0.12.0
+tokenizers==0.13.3
+transformers==4.29.0
 pinecone-client==2.2.1
 streamlit
 PyPDF2==1.26.0
-sentence-transformers==2.2.0
-altair==4.2.0
-huggingface_hub==0.12.0
+
 
 
