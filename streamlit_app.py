@@ -1,14 +1,14 @@
 import streamlit as st
-from pinecone import Client
+
 import PyPDF2
 from transformers import pipeline
 from tqdm import tqdm
 import os
 
-PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
-api_key = os.environ.get("PINECONE_API_KEY")
+from pinecone import Client
+client = Client(api_key= "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
 
-client = Client(api_key=api_key)
+PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
 
 index_name = "textembeddings"
 if index_name not in pinecone.list_indexes():
