@@ -4,7 +4,7 @@ transformers
 torch
 pinecone-client
 numpy
-PyPDF
+PyPDF2
 
 
 
