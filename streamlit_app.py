@@ -1,26 +1,48 @@
-import streamlit as st
-import fitz
-import requests
+import PyPDF2
+from transformers import pipeline
 import pinecone
-import  sentence_transformers 
+import streamlit as st
 
-# Initialize Pinecone
-pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east1-gcp")
-index_name = "pdf-embeddings"  # Set your Pinecone index name
+api_key = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
+environment = "us-east1-gcp"
 
-# Initialize Hugging Face model for embeddings (you can change this to any other suitable model)
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+pinecone.init(api_key=api_key, environment=environment)
 
-# Create Pinecone index if it doesn't exist
-try:
-    pinecone.create_index(index_name, dimension=embedding_model.get_sentence_embedding_dimension())
-except pinecone.exceptions.ApiException as e:
-    if "AlreadyExists" not in str(e):
-        raise e
-
-# Connect to the Pinecone index
+index_name = "textembedding"
 index = pinecone.Index(index_name)
 
+
+model_name = "all-MiniLM-L6-v2"
+encoder = pipeline("feature-extraction", model=model_name)
+
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ""
+        for page_num in range(len(reader.pages)):
+            page = reader.pages[page_num]
+            text += page.extract_text()
+    return text
+
+def generate_embeddings(text):
+    embeddings = encoder(text)[0]
+    return embeddings
+
+def store_embeddings_in_pinecone(text, embeddings):
+    index.upsert([
+        {
+            "id": "document_id", 
+            "vector": embeddings,
+            "metadata": {
+                "text": text
+            }
+        }
+    ])
+
+def search_in_pinecone(query):
+    query_embedding = generate_embeddings(query)
+    results = index.query(vector=query_embedding, top_k=5)
+    return results
 def main():
     st.title("PDF Viewer and Embedding App")
 
@@ -45,20 +67,19 @@ def main():
 
         st.image(img_bytes, caption=f"Page {page_number}", use_column_width=True)
 
-        # Extract text from the selected page
+      
         page_text = page.get_text()
 
-        # Generate the embedding for the page text
+        
         embedding = embedding_model.encode(page_text)
 
-        # Store the embedding in Pinecone
-        # We use the page number as the ID, but you could use any unique identifier
+        
         page_id = str(page_number)
         index.upsert([(page_id, embedding)])
 
         st.write(f"Embedding for page {page_number} has been stored in Pinecone.")
 
-        # Optionally, display the extracted text for debugging or information
+        
         st.subheader("Extracted Text from Page:")
         st.text(page_text)
 
