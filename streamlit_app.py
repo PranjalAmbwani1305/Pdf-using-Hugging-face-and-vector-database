@@ -6,8 +6,7 @@ import torch
 import numpy as np
 import uuid
 
-pinecone.deployment.initialize(api_key="pcsk_72TJAS_G158VSHz2aYjenwo2TbDvJju8o9PnqsaMRjk4v5ChFbh52QzrPrXq6dAy6TNTAV", environment="us-east-1")
-
+pinecone.init(api_key="pcsk_72TJAS_G158VSHz2aYjenwo2TbDvJju8o9PnqsaMRjk4v5ChFbh52QzrPrXq6dAy6TNTAV", environment="us-east1-gcp") 
 index = pinecone.Index(index_name)
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2" 
