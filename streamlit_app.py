@@ -10,6 +10,8 @@ os.environ["PINECONE_API_KEY"] = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaX
 try:
     pinecone.init()
 index_name = 'textembedding'
+except Exception as e:
+    print(f"Error initializing Pinecone: {e}")
 vectors_to_insert = [
     ("vec1", np.random.rand(128).tolist()), 
     ("vec2", np.random.rand(128).tolist()), 
