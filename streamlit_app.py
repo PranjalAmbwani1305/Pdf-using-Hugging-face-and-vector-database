@@ -7,7 +7,7 @@ import pinecone
 import uuid
 import os
 
-os.environ["PINECONE_API_KEY"] = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
+os.environ["PINECONE_API_KEY"] = "your-pinecone-api-key-here"
 
 try:
     pinecone.init()
@@ -19,13 +19,13 @@ except Exception as e:
 index_name = 'textembedding'
 dimension = 1536
 
-if index_name not in pinecone.list_indexes():
-    try:
+try:
+    if index_name not in pinecone.list_indexes():
         pinecone.create_index(index_name, dimension=dimension)
         print(f"Index '{index_name}' created successfully.")
-    except Exception as e:
-        st.error(f"Error creating index: {e}")
-        exit()
+except Exception as e:
+    st.error(f"Error creating or accessing index: {e}")
+    exit()
 
 index = pinecone.Index(index_name)
 
