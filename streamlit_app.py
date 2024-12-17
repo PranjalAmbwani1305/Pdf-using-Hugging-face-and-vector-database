@@ -6,7 +6,7 @@ import numpy as np
 import pinecone
 import uuid
 
-pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw', environment='us-east1-gcp')
+pinecone.init(pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw')
 index_name = 'pdf-embeddings'
 
 if index_name not in pinecone.list_indexes():
