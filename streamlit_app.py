@@ -10,6 +10,16 @@ pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEa
 
 index_name = 'textembedding'
 
+vectors_to_insert = [
+    ("vec1", np.random.rand(128).tolist()), 
+    ("vec2", np.random.rand(128).tolist()), 
+    ("vec3", np.random.rand(128).tolist())
+]
+index.upsert(vectors=vectors_to_insert)
+
+query_vector = np.random.rand(128).tolist()
+results = index.query(query_vector, top_k=3)
+
 if index_name not in pinecone.list_indexes():
     pinecone.create_index(index_name, dimension=1536)
 index = pinecone.Index(index_name)
@@ -37,7 +47,7 @@ def store_embeddings_in_pinecone(text, embeddings):
     index.upsert([(unique_id, embeddings.tolist(), metadata)])
 
 def main():
-    st.title("PDF Embeddings with Hugging Face and Pinecone")
+    st.title("PDF Embeddings")
 
     uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
     
