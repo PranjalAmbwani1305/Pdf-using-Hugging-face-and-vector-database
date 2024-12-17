@@ -1,6 +1,6 @@
 import streamlit as st
 import fitz
-import pinecone
+from pinecone import Client
 import PyPDF2
 from transformers import pipeline
 import numpy as np
@@ -9,8 +9,8 @@ import io
 
 import os
 
-# Retrieve API key and environment from environment variables or set them manually
-api_key = os.getenv("PINECONE_API_KEY", "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
+
+client = Client((api_key=api_key,"pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
 environment = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
 
 pinecone.init(api_key=api_key, environment=environment)
