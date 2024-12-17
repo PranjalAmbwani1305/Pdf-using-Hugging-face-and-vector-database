@@ -3,6 +3,6 @@ streamlit
 PyPDF2==1.26.0
 sentence-transformers==2.2.0
 altair==4.2.0
-huggingface_hub==0.14.0
+huggingface_hub==0.12.0
 
 
