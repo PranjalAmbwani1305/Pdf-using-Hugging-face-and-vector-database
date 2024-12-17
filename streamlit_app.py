@@ -13,15 +13,6 @@ try:
 except Exception as e:
     print(f"Error initializing Pinecone: {e}")
 index_name = 'textembedding'
-vectors_to_insert = [
-    ("vec1", np.random.rand(128).tolist()), 
-    ("vec2", np.random.rand(128).tolist()), 
-    ("vec3", np.random.rand(128).tolist())
-]
-index.upsert(vectors=vectors_to_insert)
-
-query_vector = np.random.rand(128).tolist()
-results = index.query(query_vector, top_k=3)
 
 if index_name not in pinecone.list_indexes():
     pinecone.create_index(index_name, dimension=1536)
