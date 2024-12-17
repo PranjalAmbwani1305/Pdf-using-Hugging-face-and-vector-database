@@ -8,8 +8,6 @@ import os
 from pinecone import Client
 client = Client(api_key= "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
 
-PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
-
 index_name = "textembeddings"
 if index_name not in pinecone.list_indexes():
     pinecone.create_index(index_name, dimension=1536)  
