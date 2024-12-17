@@ -5,10 +5,10 @@ import pinecone
 import os
 
 # Initialize Pinecone
-pinecone.init(api_key='YOUR_PINECONE_API_KEY', environment='YOUR_ENVIRONMENT')
+pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw', environment='us-east-1')
 
 # Create a new index if it doesn't exist
-index_name = 'pdf-embeddings'
+index_name = 'textembedding'
 if index_name not in pinecone.list_indexes():
     pinecone.create_index(index_name, dimension=384)  # 384 is the dimension for 'all-MiniLM-L6-v2'
 
