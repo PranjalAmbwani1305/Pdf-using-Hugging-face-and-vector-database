@@ -1,6 +1,6 @@
 streamlit
 PyMuPDF
 transformers
-pinecone-client
+pinecone-client>=2.0.0
 torch
 sentence-transformers
