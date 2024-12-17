@@ -7,8 +7,12 @@ import numpy as np
 from PIL import Image
 import io
 
-api_key = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
-environment = "us-east1-gcp"
+import os
+
+# Retrieve API key and environment from environment variables or set them manually
+api_key = os.getenv("PINECONE_API_KEY", "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
+environment = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
+
 pinecone.init(api_key=api_key, environment=environment)
 
 index_name = "textembedding"
