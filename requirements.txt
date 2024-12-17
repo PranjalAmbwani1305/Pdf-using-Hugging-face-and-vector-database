@@ -1,8 +1,7 @@
+pymupdf 
+sentence-transformers 
+pinecone-client 
 streamlit
-transformers
-pinecone-client
-PyPDF2
-tqdm
 
 
 
