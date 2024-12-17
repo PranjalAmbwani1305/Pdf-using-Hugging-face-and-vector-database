@@ -4,7 +4,7 @@ import PyPDF2
 from transformers import pipeline
 from tqdm import tqdm
 import os
-import pinecone-client 
+import pinecone client 
 pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east-1")
 
 
