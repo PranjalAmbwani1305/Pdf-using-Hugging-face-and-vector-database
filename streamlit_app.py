@@ -5,7 +5,8 @@ from transformers import pipeline
 from tqdm import tqdm
 import os
 
-pinecone.init(api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw", environment="us-east-1") 
+PINECONE_API_KEY = "pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw"
+pinecone.init(api_key=PINECONE_API_KEY)
 
 index_name = "textembeddings"
 if index_name not in pinecone.list_indexes():
