@@ -5,7 +5,7 @@ import pinecone
 import os
 
 pinecone.init(
-    api_key= 'pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw',
+    api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw',
     environment='us-east-1' 
 )
 index_name = 'textembedding'
