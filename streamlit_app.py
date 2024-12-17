@@ -8,10 +8,10 @@ import uuid
 
 pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw')
 
-index_name = 'pdf-embeddings'
+index_name = 'textembedding'
 
 if index_name not in pinecone.list_indexes():
-    pinecone.create_index(index_name, dimension=384)
+    pinecone.create_index(index_name, dimension=1536)
 index = pinecone.Index(index_name)
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
