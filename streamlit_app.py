@@ -3,15 +3,13 @@ from transformers import pipeline
 import pinecone
 import streamlit as st
 
-# Pinecone Setup
-pinecone.init(
-    api_key="pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw",
-    environment="us-east-1"
-)
+
+pinecone.init(api_key="your-pinecone-api-key", environment="us-west1-gcp")
+
 index_name = "textembedding"
 index = pinecone.Index(index_name)
 
-# Model Loading
+
 model_name = "all-MiniLM-L6-v2"
 encoder = pipeline("feature-extraction", model=model_name)
 
