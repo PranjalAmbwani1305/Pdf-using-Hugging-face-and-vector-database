@@ -1,8 +1,10 @@
 streamlit
-PyMuPDF==1.19.6
-pinecone-client==2.1.0
-transformer
+pinecone-client
+sentence-transformers
+transformers
 PyPDF2
+Pillow  
+fitz  
 
 
 
