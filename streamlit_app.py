@@ -7,6 +7,7 @@ import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema import Document
 
+# Set environment variables for API keys
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
@@ -16,6 +17,7 @@ class PDFLoader:
             raise ValueError("PDF file is not provided.")
         self.pdf_file = pdf_file
         self.extracted_text = self.extract_text()
+        
         # Create Document objects for each chunk of text
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
         self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])
@@ -23,12 +25,17 @@ class PDFLoader:
         self.index_name = "textembedding"
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
 
+        # Create index if it doesn't exist
         if self.index_name not in self.pc.list_indexes().names():
             self.pc.create_index(
                 name=self.index_name,
                 dimension=768,  
                 metric='cosine',
             )
+            st.write(f"Index '{self.index_name}' created.")
+        else:
+            st.write(f"Index '{self.index_name}' already exists.")
+        
         self.index = self.pc.Index(self.index_name)  # Initialize the index
 
     def extract_text(self):
@@ -62,14 +69,19 @@ def store_embeddings(index, embeddings, metadata):
 
         upsert_data.append((id, embedding, metadata_dict))
 
+    st.write(f"Preparing to upsert {len(upsert_data)} vectors.")
+    
     try:
         response = index.upsert(vectors=upsert_data)
+        st.write(f"Upsert response: {response}")  # Log the response
         if response.get("upserted", 0) > 0:
             st.write(f"Successfully upserted {response['upserted']} vectors.")
+        else:
+            st.error("No vectors were upserted.")
     except Exception as e:
         st.error(f"Error during Pinecone upsert: {str(e)}")
 
-st.title("PDF embedding using Hugging Face and store in Pinecone")
+st.title("PDF Embedding using Hugging Face and Store in Pinecone")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
@@ -100,4 +112,4 @@ if uploaded_file is not None:
                 st.write(f"Total chunks processed: {len(embeddings)}")
 
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")  # Ensure this line is properly closed
+        st.error(f"An error occurred: {str(e)}")
