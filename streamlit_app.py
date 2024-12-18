@@ -23,10 +23,9 @@ class PDFLoader:
         
         self.embeddings = HuggingFaceEmbeddings()
 
-        # Define the index name
+      
         self.index_name = "textembedding"
 
-        # Initialize Pinecone client
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
      
         if self.index_name not in self.pc.list_indexes().names():
@@ -39,7 +38,7 @@ class PDFLoader:
                     cloud='aws', 
                     region='us-east-1'  
                 )
-repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         self.llm = HuggingFaceEndpoint(
             repo_id=repo_id, 
             temperature=0.8, 
