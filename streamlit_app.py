@@ -10,7 +10,13 @@ os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index_name = "textembedding"
 
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-west1-gcp")
 
+try:
+    index = pinecone.Index(index_name)
+except Exception as e:
+    print(f"Error connecting to Pinecone index: {e}")
+    st.error("Error connecting to Pinecone index.")
 
 class PDFLoader:
     def __init__(self, pdf_file):
