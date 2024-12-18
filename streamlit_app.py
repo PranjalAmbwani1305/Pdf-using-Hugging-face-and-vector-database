@@ -9,8 +9,7 @@ import numpy as np
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-index_name = "textembedding"
-index = pinecone.Index(index_name)
+index= "textembedding"
 
 class PDFLoader:
     def __init__(self, pdf_file):
