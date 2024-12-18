@@ -11,7 +11,7 @@ os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index_name = "textembedding" 
-if index_name not in pc.list_indexes().names():
+if index_name not in [index.name for index in pc.list_indexes()]:
     pinecone.create_index(index_name, dimension=384)
 index = pinecone.Index(index_name)
 
