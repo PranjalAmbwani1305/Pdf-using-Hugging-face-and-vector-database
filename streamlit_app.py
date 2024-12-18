@@ -10,7 +10,6 @@ os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index_name = "textembedding"
     
-index = pinecone.Index(index_name)
 
 
 print(f"Index object: {index}")
