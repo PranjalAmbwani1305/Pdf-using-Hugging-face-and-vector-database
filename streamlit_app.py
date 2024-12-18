@@ -11,9 +11,10 @@ os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index_name = "textembedding" 
-if index_name not in [index.name for index in pc.list_indexes()]:
-    pinecone.create_index(index_name, dimension=384)
-index = pinecone.Index(index_name)
+existing_indexes = pinecone.list()
+
+if index_name not in existing_indexes:
+    pinecone.create_index(name=index_name, dimension=384)
 
 
 class PDFLoader:
