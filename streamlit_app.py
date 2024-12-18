@@ -5,12 +5,10 @@ from pinecone import Pinecone as PineconeClient, ServerlessSpec
 import os
 import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.schema import Document  # Import Document class
+from langchain.schema import Document
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
-
-index = None
 
 class PDFLoader:
     def __init__(self, pdf_file):
@@ -20,7 +18,7 @@ class PDFLoader:
         self.extracted_text = self.extract_text()
         # Create Document objects for each chunk of text
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
-        self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])  # Create Document instance
+        self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])
 
         self.index_name = "textembedding"
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
@@ -31,18 +29,13 @@ class PDFLoader:
                 dimension=768,  
                 metric='cosine',
             )
-            spec = ServerlessSpec(
-                    cloud='aws', 
-                    region='us-east-1'  
-                )
+        self.index = self.pc.Index(self.index_name)  # Initialize the index
 
     def extract_text(self):
         try:
-            # Ensure that the file content is not empty
             if not self.pdf_file:
                 raise ValueError("The PDF file is empty.")
             
-            # Open the PDF and extract text
             doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
             text = ""
             for page in doc:
@@ -58,8 +51,7 @@ class EmbeddingGenerator:
     def generate_embeddings(self, text_chunks):
         return self.model.encode(text_chunks)
 
-def store_embeddings(embeddings, metadata):
-    stored_data = []  
+def store_embeddings(index, embeddings, metadata):
     upsert_data = [] 
     for i, embedding in enumerate(embeddings):
         if isinstance(embedding, np.ndarray):  
@@ -68,43 +60,31 @@ def store_embeddings(embeddings, metadata):
         id = f'doc-{i}'
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
-        if index is not None:
-            upsert_data.append((id, embedding, metadata_dict))
-        else:
-            stored_data.append((id, embedding, metadata_dict)) 
+        upsert_data.append((id, embedding, metadata_dict))
 
-    if index is not None:
-        try:
-            response = index.upsert(vectors=upsert_data)
-            if response.get("upserted", 0) > 0:
-                print(f"Successfully upserted {response['upserted']} vectors.")
-                st.write(f"Successfully upserted {response['upserted']} vectors.")
-        except Exception as e:
-            print(f"Error during Pinecone upsert: {str(e)}")
-            st.error(f"Error during Pinecone upsert: {str(e)}")
-    else:
-        # Store locally if Pinecone isn't available
-        print(f"Stored {len(stored_data)} embeddings locally.")
-        st.write(f"Stored {len(stored_data)} embeddings locally.")
-        return stored_data
+    try:
+        response = index.upsert(vectors=upsert_data)
+        if response.get("upserted", 0) > 0:
+            st.write(f"Successfully upserted {response['upserted']} vectors.")
+    except Exception as e:
+        st.error(f"Error during Pinecone upsert: {str(e)}")
 
-st.title("PDF embedding using hugging face and store in pinecone")
+st.title("PDF embedding using Hugging Face and store in Pinecone")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
     try:
-        # Ensure that the file has content
         file_size = uploaded_file.size
         if file_size == 0:
             st.error("The uploaded PDF file is empty.")
         else:
-            st.write(f"File size: {file_size / 1024:.2f} KB")  # Show file size for debugging
+            st.write(f"File size: {file_size / 1024:.2f} KB")
 
             pdf_loader = PDFLoader(uploaded_file)
             extracted_text = pdf_loader.extracted_text
 
-            # Split the text into chunks
-            text_chunks = extracted_text.split('\n\n')
+            # Use the already split documents
+            text_chunks = [doc.page_content for doc in pdf_loader.docs]
 
             if not text_chunks:
                 st.error("No text chunks to process.")
@@ -114,10 +94,10 @@ if uploaded_file is not None:
 
                 metadata = [{'pdf_name': uploaded_file.name, 'chunk_number': i} for i in range(len(embeddings))]
 
-                store_embeddings(embeddings, metadata)
+                store_embeddings(pdf_loader.index, embeddings, metadata)
 
                 st.write("Embeddings generated and stored successfully!")
                 st.write(f"Total chunks processed: {len(embeddings)}")
 
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.error(f"
