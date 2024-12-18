@@ -10,7 +10,6 @@ os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index_name = "textembedding"
 
-pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-west1-gcp")
 
 try:
     index = pinecone.Index(index_name)
