@@ -27,6 +27,7 @@ class EmbeddingGenerator:
     def generate_embeddings(self, text_chunks):
         return self.model.encode(text_chunks)
 
+
 def store_embeddings(embeddings, metadata):
     upsert_data = []
     for i, embedding in enumerate(embeddings):
@@ -34,20 +35,20 @@ def store_embeddings(embeddings, metadata):
             embedding = embedding.tolist()
 
         id = f'doc-{i}'
-
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
         upsert_data.append((id, embedding, metadata_dict))
 
-    try:
-        response = index.upsert(vectors=upsert_data)
-        if response.get("upserted", 0) > 0:
-            print(f"Successfully upserted {response['upserted']} vectors.")
-    except Exception as e:
-        print(f"Error during upsert: {str(e)}")
-        raise
+    if index:
+        try:
+            response = index.upsert(vectors=upsert_data)
+            if response.get("upserted", 0) > 0:
+                st.write(f"Successfully upserted {response['upserted']} vectors.")
+        except Exception as e:
+            st.error(f"Error during upsert: {str(e)}")
+    else:
+        st.write("No connection to Pinecone. Embeddings are not stored.")
 
-st.title("PDF Embedding Generator")
 
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
