@@ -29,9 +29,17 @@ class EmbeddingGenerator:
 
 
 def store_embeddings(embeddings, metadata):
+    upsert_data = []
     for i, embedding in enumerate(embeddings):
+        if isinstance(embedding, list) or isinstance(embedding, np.ndarray):
+            embedding = embedding.tolist()  # Ensure embedding is a list (if it's a numpy array)
+        
         id = f'doc-{i}'
-        index.upsert([(id, embedding, metadata[i])])
+        metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}  # Ensure metadata is a dictionary
+        
+        upsert_data.append((id, embedding, metadata_dict))
+
+    index.upsert(upsert_data)
 
 st.title("PDF Embedding Generator")
 
