@@ -1,7 +1,7 @@
 import streamlit as st
 import fitz  
 from sentence_transformers import SentenceTransformer
-from pinecone import Pinecone as PineconeClient, ServerlessSpec 
+from pinecone import PineconeClient, ServerlessSpec 
 import os
 import numpy as np
 import easyocr
