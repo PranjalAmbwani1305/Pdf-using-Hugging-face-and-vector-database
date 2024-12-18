@@ -9,7 +9,14 @@ os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index_name = "textembedding"
-    
+
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-west1-gcp")
+
+try:
+    index = pinecone.Index(index_name)
+except Exception as e:
+    print(f"Error connecting to Pinecone index: {e}")
+    st.error("Error connecting to Pinecone index.")
 
 class PDFLoader:
     def __init__(self, pdf_file):
@@ -24,34 +31,27 @@ class PDFLoader:
 
 class EmbeddingGenerator:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
-        self.model = SentenceTransformer(model_name)  
+        self.model = SentenceTransformer(model_name)
 
     def generate_embeddings(self, text_chunks):
-        return self.model.encode(text_chunks)  
+        return self.model.encode(text_chunks)
 
 def store_embeddings(embeddings, metadata):
     upsert_data = []
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray):  # Convert numpy array to list if needed
+        if isinstance(embedding, np.ndarray):
             embedding = embedding.tolist()
 
-        
         id = f'doc-{i}'
 
-       
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
-        
         upsert_data.append((id, embedding, metadata_dict))
-    
-   
-    print(f"Upsert data: {upsert_data}")
-    print(f"Type of upsert data: {type(upsert_data)}")
 
     try:
-        print("Attempting to upsert data...")
-        response = index.upsert(upsert_data)  # This is where the actual upsert happens
-        print(f"Successfully upserted {len(upsert_data)} items. Response: {response}")
+        response = index.upsert(vectors=upsert_data)
+        if response.get("upserted", 0) > 0:
+            print(f"Successfully upserted {response['upserted']} vectors.")
     except Exception as e:
         print(f"Error during upsert: {str(e)}")
         raise
@@ -64,19 +64,7 @@ if uploaded_file is not None:
     pdf_loader = PDFLoader(uploaded_file)
     extracted_text = pdf_loader.extract_text()
 
-    
-    text_chunks = extracted_text.split('\n\n')  # Split by double newline as an example
+    text_chunks = extracted_text.split('\n\n')
 
-    
-    embedding_generator = EmbeddingGenerator()
-    embeddings = embedding_generator.generate_embeddings(text_chunks)
-
-
-    metadata = [{'pdf_name': uploaded_file.name, 'chunk_number': i} for i in range(len(embeddings))]
-
-    
-    store_embeddings(embeddings, metadata)
-
-    
-    st.write("Embeddings generated and stored successfully!")
-    st.write(f"Total chunks processed: {len(embeddings)}")
+    if not text_chunks:
+  
