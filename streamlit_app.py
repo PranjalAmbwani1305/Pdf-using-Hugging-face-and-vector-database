@@ -30,29 +30,33 @@ class EmbeddingGenerator:
     def generate_embeddings(self, text_chunks):
         return self.model.encode(text_chunks)  
         
+
 def store_embeddings(embeddings, metadata):
     upsert_data = []
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray):  
+        if isinstance(embedding, np.ndarray):  # Convert numpy array to list if needed
             embedding = embedding.tolist()
         
-        
+        # Create a unique ID for each embedding
         id = f'doc-{i}'
 
-       
+        # Ensure metadata is a dictionary
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
-        
+        # Prepare upsert data
         upsert_data.append((id, embedding, metadata_dict))
+    
+    # Debugging: Check the data before upserting
+    print(f"Upsert data: {upsert_data}")
+    print(f"Type of upsert data: {type(upsert_data)}")
 
     try:
-        
-        index.upsert(upsert_data) 
+        # Upsert data to Pinecone
+        index.upsert(upsert_data)  # This is where the actual upsert happens
         print(f"Successfully upserted {len(upsert_data)} items.")
     except Exception as e:
         print(f"Error during upsert: {str(e)}")
         raise
-
 st.title("PDF  Generator")
 
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
