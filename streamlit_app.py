@@ -11,10 +11,6 @@ os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 index_name = "textembedding"
     
 
-
-print(f"Index object: {index}")
-print(f"Type of index: {type(index)}")
-
 class PDFLoader:
     def __init__(self, pdf_file):
         self.pdf_file = pdf_file
