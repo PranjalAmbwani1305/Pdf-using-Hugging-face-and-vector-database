@@ -12,10 +12,9 @@ os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index = None
 
-def __init__(self):
-        # Load PDF data
-        loader = PyMuPDFLoader('') 
-        documents = loader.load()
+class PDFLoader:
+    def __init__(self, pdf_file):
+        self.pdf_file = pdf_file
         
         # Split documents into smaller chunks
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
