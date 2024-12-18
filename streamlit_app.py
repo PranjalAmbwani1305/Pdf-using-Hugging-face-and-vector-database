@@ -35,7 +35,7 @@ class PDFLoader:
                 dimension=768,  
                 metric='cosine',
             )
-                spec=ServerlessSpec(
+            spec=ServerlessSpec(
                     cloud='aws', 
                     region='us-east-1'  
                 )
