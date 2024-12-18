@@ -3,12 +3,11 @@ import fitz
 from sentence_transformers import SentenceTransformer
 import pinecone
 import os
-import warnings
+from huggingface_hub import login
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
+os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-api_key = os.getenv("pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
-environment = os.getenv("us-east-1")
 
 index_name = 'textembedding'
 if index_name not in pinecone.list_indexes():
