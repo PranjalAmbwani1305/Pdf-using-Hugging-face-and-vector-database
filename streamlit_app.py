@@ -1,7 +1,7 @@
 import streamlit as st
 import fitz  
 from sentence_transformers import SentenceTransformer
-import pinecone
+from pinecone import Pinecone as PineconeClient, ServerlessSpec 
 import os
 import numpy as np
 import easyocr
@@ -10,17 +10,7 @@ import easyocr
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-try:
-    pinecone.describe_index(index_name)  # If index exists, this succeeds
-    print(f"Index '{index_name}' already exists.")
-except pinecone.exceptions.PineconeException as e:
-    # If the index does not exist, create it
-    print(f"Index '{index_name}' not found. Creating it...")
-    pinecone.create_index(name=index_name, dimension=384)
 
-# Connect to the index
-index = pinecone.Index(index_name)
-print(f"Successfully connected to index: {index_name}")
 
 
 class PDFLoader:
