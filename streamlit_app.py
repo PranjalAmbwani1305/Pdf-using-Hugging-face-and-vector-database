@@ -3,7 +3,7 @@ import fitz
 from sentence_transformers import SentenceTransformer
 import pinecone
 import os
-from huggingface_hub import login
+import huggingface_hub 
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
