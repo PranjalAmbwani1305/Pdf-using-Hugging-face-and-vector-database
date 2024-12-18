@@ -11,7 +11,33 @@ os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index = None
+def __init__(self):
+        # Load PDF data
+        loader = PyMuPDFLoader('') 
+        documents = loader.load()
+        
+        # Split documents into smaller chunks
+        text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
+        self.docs = text_splitter.split_documents(documents)
 
+        
+        self.embeddings = HuggingFaceEmbeddings()
+
+        # Define the index name
+        self.index_name = "amcsanitation"
+
+        # Initialize Pinecone client
+        self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
+     
+        if self.index_name not in self.pc.list_indexes().names():
+            self.pc.create_index(
+                name=self.index_name,
+                dimension=768,  
+                metric='cosine',
+                spec=ServerlessSpec(
+                    cloud='aws', 
+                    region='us-east-1'  
+                )
 
 class PDFLoader:
     def __init__(self, pdf_file):
