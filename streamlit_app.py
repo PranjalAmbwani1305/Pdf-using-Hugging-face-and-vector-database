@@ -5,7 +5,9 @@ from pinecone import Pinecone as PineconeClient, ServerlessSpec
 import os
 import numpy as np
 import easyocr
-
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.llms import HuggingFaceEndpoint
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
@@ -15,29 +17,27 @@ index = None
 class PDFLoader:
     def __init__(self, pdf_file):
         self.pdf_file = pdf_file
-        
         # Split documents into smaller chunks
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
-        self.docs = text_splitter.split_documents(documents)
+        self.docs = text_splitter.split_documents([self.extract_text()])
 
-        
         self.embeddings = HuggingFaceEmbeddings()
 
-      
         self.index_name = "textembedding"
 
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
-     
+
         if self.index_name not in self.pc.list_indexes().names():
             self.pc.create_index(
                 name=self.index_name,
                 dimension=768,  
                 metric='cosine',
             )
-            spec=ServerlessSpec(
+            spec = ServerlessSpec(
                     cloud='aws', 
                     region='us-east-1'  
                 )
+        
         repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         self.llm = HuggingFaceEndpoint(
             repo_id=repo_id, 
@@ -45,10 +45,6 @@ class PDFLoader:
             top_k=50, 
             huggingfacehub_api_token=os.getenv('HUGGINGFACE_API_KEY')
         )
-
-class PDFLoader:
-    def __init__(self, pdf_file):
-        self.pdf_file = pdf_file
 
     def extract_text(self):
         doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
