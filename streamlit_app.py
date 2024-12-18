@@ -6,8 +6,6 @@ import os
 import numpy as np
 import easyocr
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain.llms import HuggingFaceEndpoint
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
@@ -21,10 +19,7 @@ class PDFLoader:
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
         self.docs = text_splitter.split_documents([self.extract_text()])
 
-        self.embeddings = HuggingFaceEmbeddings()
-
         self.index_name = "textembedding"
-
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
 
         if self.index_name not in self.pc.list_indexes().names():
@@ -37,14 +32,6 @@ class PDFLoader:
                     cloud='aws', 
                     region='us-east-1'  
                 )
-        
-        repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-        self.llm = HuggingFaceEndpoint(
-            repo_id=repo_id, 
-            temperature=0.8, 
-            top_k=50, 
-            huggingfacehub_api_token=os.getenv('HUGGINGFACE_API_KEY')
-        )
 
     def extract_text(self):
         doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
@@ -55,9 +42,11 @@ class PDFLoader:
 
 class EmbeddingGenerator:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
+        # Directly using SentenceTransformer for embeddings
         self.model = SentenceTransformer(model_name)
 
     def generate_embeddings(self, text_chunks):
+        # Generate embeddings from text chunks
         return self.model.encode(text_chunks)
 
 def store_embeddings(embeddings, metadata):
