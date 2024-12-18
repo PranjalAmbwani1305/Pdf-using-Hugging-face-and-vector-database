@@ -2,8 +2,8 @@ pymupdf
 sentence-transformers 
 pinecone-client>=2.1.0
 streamlit
-huggingface-hub
- easyocr
+huggingface_hub
+easyocr
 langchain
 
 
