@@ -6,7 +6,7 @@ import os
 import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema import Document
-import time
+
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
