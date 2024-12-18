@@ -39,6 +39,13 @@ class PDFLoader:
                     cloud='aws', 
                     region='us-east-1'  
                 )
+repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        self.llm = HuggingFaceEndpoint(
+            repo_id=repo_id, 
+            temperature=0.8, 
+            top_k=50, 
+            huggingfacehub_api_token=os.getenv('HUGGINGFACE_API_KEY')
+        )
 
 class PDFLoader:
     def __init__(self, pdf_file):
