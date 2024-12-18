@@ -10,7 +10,11 @@ import easyocr
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-index = None 
+index_name = "textembedding" 
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(index_name, dimension=384)  
+
+index = pinecone.Index(index_name)
 
 
 class PDFLoader:
