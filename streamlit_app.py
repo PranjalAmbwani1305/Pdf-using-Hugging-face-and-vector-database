@@ -17,11 +17,10 @@ class PDFLoader:
         if pdf_file is None:
             raise ValueError("PDF file is not provided.")
         self.pdf_file = pdf_file
-        extracted_text = self.extract_text()
-
+        self.extracted_text = self.extract_text()
         # Create Document objects for each chunk of text
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
-        self.docs = text_splitter.split_documents([Document(page_content=extracted_text)])  # Create Document instance
+        self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])  # Create Document instance
 
         self.index_name = "textembedding"
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
@@ -38,11 +37,19 @@ class PDFLoader:
                 )
 
     def extract_text(self):
-        doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
-        text = ""
-        for page in doc:
-            text += page.get_text()
-        return text
+        try:
+            # Ensure that the file content is not empty
+            if not self.pdf_file:
+                raise ValueError("The PDF file is empty.")
+            
+            # Open the PDF and extract text
+            doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
+            text = ""
+            for page in doc:
+                text += page.get_text()
+            return text
+        except Exception as e:
+            raise ValueError(f"Error extracting text from PDF: {str(e)}")
 
 class EmbeddingGenerator:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
@@ -86,22 +93,31 @@ uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
     try:
-        pdf_loader = PDFLoader(uploaded_file)
-        extracted_text = pdf_loader.extract_text()
-
-        text_chunks = extracted_text.split('\n\n')
-
-        if not text_chunks:
-            st.error("No text chunks to process.")
+        # Ensure that the file has content
+        file_size = uploaded_file.size
+        if file_size == 0:
+            st.error("The uploaded PDF file is empty.")
         else:
-            embedding_generator = EmbeddingGenerator()
-            embeddings = embedding_generator.generate_embeddings(text_chunks)
+            st.write(f"File size: {file_size / 1024:.2f} KB")  # Show file size for debugging
 
-            metadata = [{'pdf_name': uploaded_file.name, 'chunk_number': i} for i in range(len(embeddings))]
+            pdf_loader = PDFLoader(uploaded_file)
+            extracted_text = pdf_loader.extracted_text
 
-            store_embeddings(embeddings, metadata)
+            # Split the text into chunks
+            text_chunks = extracted_text.split('\n\n')
 
-            st.write("Embeddings generated and stored successfully!")
-            st.write(f"Total chunks processed: {len(embeddings)}")
+            if not text_chunks:
+                st.error("No text chunks to process.")
+            else:
+                embedding_generator = EmbeddingGenerator()
+                embeddings = embedding_generator.generate_embeddings(text_chunks)
+
+                metadata = [{'pdf_name': uploaded_file.name, 'chunk_number': i} for i in range(len(embeddings))]
+
+                store_embeddings(embeddings, metadata)
+
+                st.write("Embeddings generated and stored successfully!")
+                st.write(f"Total chunks processed: {len(embeddings)}")
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
