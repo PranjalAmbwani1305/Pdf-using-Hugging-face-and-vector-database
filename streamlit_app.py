@@ -10,11 +10,12 @@ import easyocr
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-# List existing indexes
-existing_indexes = pinecone.list_indexes()
-
-# Check if the index exists; if not, create it
-if index_name not in existing_indexes:
+try:
+    pinecone.describe_index(index_name)  # If index exists, this succeeds
+    print(f"Index '{index_name}' already exists.")
+except pinecone.exceptions.PineconeException as e:
+    # If the index does not exist, create it
+    print(f"Index '{index_name}' not found. Creating it...")
     pinecone.create_index(name=index_name, dimension=384)
 
 # Connect to the index
