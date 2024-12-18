@@ -11,8 +11,7 @@ os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 index_name = "textembedding"
 
 
-if index_name not in pinecone.list_indexes():
-    print("Index does not exist. Creating index...")
+if index_name not in pinecone.list_indexe():
     pinecone.create_index(index_name, dimension=768) 
     
 index = pinecone.Index(index_name)
