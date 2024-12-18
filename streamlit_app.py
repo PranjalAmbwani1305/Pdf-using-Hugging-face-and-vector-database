@@ -10,7 +10,7 @@ import easyocr
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-
+index = none 
 
 
 class PDFLoader:
@@ -61,7 +61,7 @@ def store_embeddings(embeddings, metadata):
         st.write(f"Stored {len(stored_data)} embeddings locally.")
         return stored_data
 
-st.title("PDF Generator")
+st.title("PDF embedding using hugging face and store in pinecone")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
