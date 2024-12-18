@@ -10,7 +10,7 @@ import easyocr
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
-index = none 
+index = None
 
 
 class PDFLoader:
