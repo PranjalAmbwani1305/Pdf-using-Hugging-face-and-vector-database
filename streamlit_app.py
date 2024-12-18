@@ -100,4 +100,4 @@ if uploaded_file is not None:
                 st.write(f"Total chunks processed: {len(embeddings)}")
 
     except Exception as e:
-        st.error(f"
+        st.error(f"An error occurred: {str(e)}")  # Ensure this line is properly closed
