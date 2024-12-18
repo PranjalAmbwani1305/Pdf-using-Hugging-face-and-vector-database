@@ -7,7 +7,8 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw', environment="us-east-1") 
+api_key = os.getenv("pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw")
+environment = os.getenv("us-east-1")
 
 index_name = 'textembedding'
 if index_name not in pinecone.list_indexes():
