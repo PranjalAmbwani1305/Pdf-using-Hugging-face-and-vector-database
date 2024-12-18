@@ -3,6 +3,9 @@ import fitz
 from sentence_transformers import SentenceTransformer
 import pinecone
 import os
+import warnings
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 pinecone.init(api_key='pcsk_6pU2by_7RqfcYiJdc3QoZJVmtqLjBZWZzABszayaXF6fVRJ47pEaKrDu8XZKAsKHZPTrmw', environment="us-east-1") 
 
