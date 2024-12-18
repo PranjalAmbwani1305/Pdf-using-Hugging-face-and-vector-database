@@ -1,6 +1,6 @@
 pymupdf 
 sentence-transformers 
-pinecone-client=2.0.0
+pinecone-client = 2.0.0
 streamlit
 
 
