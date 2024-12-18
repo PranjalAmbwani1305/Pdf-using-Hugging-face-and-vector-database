@@ -29,25 +29,35 @@ class EmbeddingGenerator:
 
 
 def store_embeddings(embeddings, metadata):
-    upsert_data = []
+    stored_data = []  
+    upsert_data = []  
+
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray):
+        if isinstance(embedding, np.ndarray): 
             embedding = embedding.tolist()
 
         id = f'doc-{i}'
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
-        upsert_data.append((id, embedding, metadata_dict))
+
+        if index:
+            upsert_data.append((id, embedding, metadata_dict))
+        else:
+            stored_data.append((id, embedding, metadata_dict))  # Store locally if no Pinecone
 
     if index:
         try:
             response = index.upsert(vectors=upsert_data)
             if response.get("upserted", 0) > 0:
-                st.write(f"Successfully upserted {response['upserted']} vectors.")
+                print(f"Successfully upserted {response['upserted']} vectors.")
+            st.write(f"Successfully upserted {response['upserted']} vectors.")
         except Exception as e:
-            st.error(f"Error during upsert: {str(e)}")
+            print(f"Error during Pinecone upsert: {str(e)}")
+            st.error(f"Error during Pinecone upsert: {str(e)}")
     else:
-        st.write("No connection to Pinecone. Embeddings are not stored.")
+        print(f"Stored {len(stored_data)} embeddings locally.")
+        st.write(f"Stored {len(stored_data)} embeddings locally.")
+        return stored_data
 
 
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
