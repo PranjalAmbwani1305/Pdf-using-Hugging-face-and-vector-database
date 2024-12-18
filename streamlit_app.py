@@ -29,22 +29,29 @@ class EmbeddingGenerator:
 
     def generate_embeddings(self, text_chunks):
         return self.model.encode(text_chunks)  
-
+        
 def store_embeddings(embeddings, metadata):
     upsert_data = []
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray): 
+        if isinstance(embedding, np.ndarray):  
             embedding = embedding.tolist()
+        
+        
         id = f'doc-{i}'
 
-    
+       
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
-     
+        
         upsert_data.append((id, embedding, metadata_dict))
 
- 
-    index.upsert(upsert_data)
+    try:
+        
+        index.upsert(upsert_data) 
+        print(f"Successfully upserted {len(upsert_data)} items.")
+    except Exception as e:
+        print(f"Error during upsert: {str(e)}")
+        raise
 
 st.title("PDF  Generator")
 
