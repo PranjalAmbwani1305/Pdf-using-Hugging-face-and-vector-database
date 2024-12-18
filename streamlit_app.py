@@ -67,4 +67,14 @@ if uploaded_file is not None:
     text_chunks = extracted_text.split('\n\n')
 
     if not text_chunks:
-  
+        st.error("No text chunks to process.")
+    else:
+        embedding_generator = EmbeddingGenerator()
+        embeddings = embedding_generator.generate_embeddings(text_chunks)
+
+        metadata = [{'pdf_name': uploaded_file.name, 'chunk_number': i} for i in range(len(embeddings))]
+
+        store_embeddings(embeddings, metadata)
+
+        st.write("Embeddings generated and stored successfully!")
+        st.write(f"Total chunks processed: {len(embeddings)}")
