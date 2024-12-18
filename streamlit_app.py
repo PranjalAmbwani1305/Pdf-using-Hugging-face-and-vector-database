@@ -4,6 +4,8 @@ from sentence_transformers import SentenceTransformer
 import pinecone
 import os
 import numpy as np
+import easyocr
+
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
