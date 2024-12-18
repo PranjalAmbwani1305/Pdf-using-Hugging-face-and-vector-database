@@ -11,6 +11,7 @@ os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
 index = None
+
 def __init__(self):
         # Load PDF data
         loader = PyMuPDFLoader('') 
@@ -24,7 +25,7 @@ def __init__(self):
         self.embeddings = HuggingFaceEmbeddings()
 
         # Define the index name
-        self.index_name = "amcsanitation"
+        self.index_name = "textembedding"
 
         # Initialize Pinecone client
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
