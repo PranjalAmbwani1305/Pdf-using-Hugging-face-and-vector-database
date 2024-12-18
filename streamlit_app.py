@@ -3,10 +3,18 @@ import fitz
 from sentence_transformers import SentenceTransformer
 import pinecone
 import os
+import numpy as np  # Import numpy to handle np.ndarray
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
+
+
+index_name = "textembeddings"
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(index_name, dimension=1536)
+
+index = pinecone.Index(index_name)
 
 class PDFLoader:
     def __init__(self, pdf_file):
@@ -31,12 +39,11 @@ class EmbeddingGenerator:
 def store_embeddings(embeddings, metadata):
     upsert_data = []
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, list) or isinstance(embedding, np.ndarray):
-            embedding = embedding.tolist()  # Ensure embedding is a list (if it's a numpy array)
-        
+        if isinstance(embedding, np.ndarray):  
+            embedding = embedding.tolist() 
+
         id = f'doc-{i}'
-        metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}  # Ensure metadata is a dictionary
-        
+        metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}  
         upsert_data.append((id, embedding, metadata_dict))
 
     index.upsert(upsert_data)
