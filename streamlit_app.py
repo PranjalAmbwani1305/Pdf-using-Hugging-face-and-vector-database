@@ -1,7 +1,7 @@
 import streamlit as st
-import fitz  
+import fitz
 from sentence_transformers import SentenceTransformer
-from pinecone import Pinecone as PineconeClient, ServerlessSpec 
+from pinecone import Pinecone as PineconeClient
 import os
 import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
@@ -17,30 +17,30 @@ class PDFLoader:
             raise ValueError("PDF file is not provided.")
         self.pdf_file = pdf_file
         self.extracted_text = self.extract_text()
-        
+
         text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
         self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])
 
         self.index_name = "textembedding"
-        self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY')) 
+        self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY'))
 
         if self.index_name not in self.pc.list_indexes().names():
             self.pc.create_index(
                 name=self.index_name,
-                dimension=384,  
+                dimension=384,
                 metric='cosine',
             )
             st.write(f"Index '{self.index_name}' created.")
         else:
             st.write(f"Index '{self.index_name}' already exists.")
-        
+
         self.index = self.pc.Index(self.index_name)
 
     def extract_text(self):
         try:
             if not self.pdf_file:
                 raise ValueError("The PDF file is empty.")
-            
+
             doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
             text = ""
             for page in doc:
@@ -57,9 +57,9 @@ class EmbeddingGenerator:
         return self.model.encode(text_chunks)
 
 def store_embeddings(index, embeddings, metadata, retries=3, delay=2):
-    upsert_data = [] 
+    upsert_data = []
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray):  
+        if isinstance(embedding, np.ndarray):
             embedding = embedding.tolist()
 
         id = f'doc-{i}'
@@ -68,11 +68,11 @@ def store_embeddings(index, embeddings, metadata, retries=3, delay=2):
         upsert_data.append((id, embedding, metadata_dict))
 
     st.write(f"Preparing to upsert {len(upsert_data)} vectors.")
-    
     for attempt in range(retries):
         try:
             response = index.upsert(vectors=upsert_data)
             st.write(f"Upsert response: {response}")
+
             if response.get("upserted", 0) > 0:
                 st.write(f"Successfully upserted {response['upserted']} vectors.")
             else:
@@ -91,8 +91,13 @@ uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 if uploaded_file:
     loader = PDFLoader(uploaded_file)
     text_chunks = [doc.page_content for doc in loader.docs]
+
     embedding_generator = EmbeddingGenerator()
     embeddings = embedding_generator.generate_embeddings(text_chunks)
 
+    st.write(f"Generated embeddings: {embeddings[:2]}")
+    st.write(f"Shape of embeddings: {np.array(embeddings).shape}")
+
     metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(embeddings))]
+
     store_embeddings(loader.index, embeddings, metadata)
