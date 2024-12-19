@@ -3,7 +3,7 @@ sentence-transformers
 pinecone-client>=2.1.0
 streamlit
 huggingface_hub
-easyocr
+pytesseract
 langchain
 
 
