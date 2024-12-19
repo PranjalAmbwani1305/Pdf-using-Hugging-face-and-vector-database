@@ -7,7 +7,7 @@ import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema import Document
 import time
-import easyocr  
+import pytesseract
 from PIL import Image
 import io
 
@@ -57,22 +57,15 @@ class PDFLoader:
         except Exception as e:
             raise ValueError(f"Error extracting text from PDF: {str(e)}")
 
-    def extract_text_with_ocr(self, doc):
-        reader = easyocr.Reader(['en'])
-        ocr_text = ""
-        
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            pix = page.get_pixmap()
-            img_bytes = pix.tobytes("png")
-            
-            image = Image.open(io.BytesIO(img_bytes))
-            ocr_result = reader.readtext(np.array(image))
-            
-            for result in ocr_result:
-                ocr_text += result[1] + "\n"
-            
-        return ocr_text
+    
+    def extract_text_from_image(self, img):
+        try:
+            text = pytesseract.image_to_string(img)
+            return text
+        except Exception as e:
+            st.error(f"Error during OCR: {str(e)}")
+            return ""
+
 
 class EmbeddingGenerator:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
