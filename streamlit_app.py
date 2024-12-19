@@ -1,7 +1,7 @@
 import streamlit as st
 import fitz
 from sentence_transformers import SentenceTransformer
-import pinecone
+from pinecone import Pinecone as PineconeClient
 import os
 import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
@@ -10,7 +10,6 @@ import time
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
-
 
 class PDFLoader:
     def __init__(self, pdf_file):
@@ -23,9 +22,10 @@ class PDFLoader:
         self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])
 
         self.index_name = "textembedding"
-        
-        if self.index_name not in pinecone.list_indexes():
-            pinecone.create_index(
+        self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY'))
+
+        if self.index_name not in self.pc.list_indexes().names():
+            self.pc.create_index(
                 name=self.index_name,
                 dimension=384,
                 metric='cosine',
@@ -34,7 +34,7 @@ class PDFLoader:
         else:
             st.write(f"Index '{self.index_name}' already exists.")
 
-        self.index = pinecone.Index(self.index_name)
+        self.index = self.pc.Index(self.index_name)
 
     def extract_text(self):
         try:
@@ -62,12 +62,12 @@ def store_embeddings(index, embeddings, metadata, retries=3, delay=2):
         if isinstance(embedding, np.ndarray):
             embedding = embedding.tolist()
 
+        id = f'doc-{i}'
         metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
 
-        upsert_data.append((f'doc-{i}', embedding, metadata_dict))
+        upsert_data.append((id, embedding, metadata_dict))
 
     st.write(f"Preparing to upsert {len(upsert_data)} vectors.")
-    
     for attempt in range(retries):
         try:
             response = index.upsert(vectors=upsert_data)
@@ -90,7 +90,6 @@ uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
 if uploaded_file:
     loader = PDFLoader(uploaded_file)
-    
     text_chunks = [doc.page_content for doc in loader.docs]
 
     embedding_generator = EmbeddingGenerator()
@@ -101,4 +100,4 @@ if uploaded_file:
 
     metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(embeddings))]
 
-    store_embeddings(loader.index, embeddings, metadata)
+    store_embeddings(loader.index, embeddings, metadata)        
