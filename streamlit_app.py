@@ -27,7 +27,7 @@ class PDFLoader:
         if self.index_name not in self.pc.list_indexes().names():
             self.pc.create_index(
                 name=self.index_name,
-                dimension=768,  
+                dimension=1536,  
                 metric='cosine',
             )
             st.write(f"Index '{self.index_name}' created.")
