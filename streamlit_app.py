@@ -1,5 +1,5 @@
 import streamlit as st
-import fitz
+import fitz  
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone as PineconeClient
 import os
@@ -7,6 +7,9 @@ import numpy as np
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema import Document
 import time
+import easyocr  
+from PIL import Image
+import io
 
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
@@ -44,10 +47,32 @@ class PDFLoader:
             doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
             text = ""
             for page in doc:
-                text += page.get_text()
-            return text
+                text += page.get_text("text")
+
+            if text.strip():
+                return text
+            else:
+                st.warning("No selectable text found. Using OCR to extract text from images.")
+                return self.extract_text_with_ocr(doc)
         except Exception as e:
             raise ValueError(f"Error extracting text from PDF: {str(e)}")
+
+    def extract_text_with_ocr(self, doc):
+        reader = easyocr.Reader(['en'])
+        ocr_text = ""
+        
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap()
+            img_bytes = pix.tobytes("png")
+            
+            image = Image.open(io.BytesIO(img_bytes))
+            ocr_result = reader.readtext(np.array(image))
+            
+            for result in ocr_result:
+                ocr_text += result[1] + "\n"
+            
+        return ocr_text
 
 class EmbeddingGenerator:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
@@ -100,4 +125,4 @@ if uploaded_file:
 
     metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(embeddings))]
 
-    store_embeddings(loader.index, embeddings, metadata)        
+    store_embeddings(loader.index, embeddings, metadata)
