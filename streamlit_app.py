@@ -1,121 +1,118 @@
-import streamlit as st
-import fitz  
-from sentence_transformers import SentenceTransformer
-from pinecone import Pinecone as PineconeClient
 import os
-import numpy as np
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.schema import Document
-import time
-import pytesseract
-from PIL import Image
-import io
+from langchain.prompts import PromptTemplate
+from langchain.document_loaders import PyMuPDFLoader
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Pinecone
+from langchain.llms import HuggingFaceHub
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import pinecone
+import streamlit as st
+from pinecone import ServerlessSpec
 
-os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
-os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
+# Access API keys securely from Streamlit secrets
+HUGGINGFACE_API_KEY = st.secrets["HUGGINGFACE_API_KEY"]
+PINECONE_API_KEY = st.secrets["PINECONE_API_KEY"]
 
-class PDFLoader:
-    def __init__(self, pdf_file):
-        if pdf_file is None:
-            raise ValueError("PDF file is not provided.")
-        self.pdf_file = pdf_file
-        self.extracted_text = self.extract_text()
+# Initialize Pinecone client using the correct initialization method
+pinecone.init(api_key=PINECONE_API_KEY, environment="us-east-1")  # Updated to us-east-1 region
 
-        text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
-        self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])
+# Chatbot Class
+class GPMCChatbot:
+    def __init__(self):
+        # Load documents from the PDF file
+        pdf_loader = PyMuPDFLoader("gpmc.pdf")  # Ensure the file exists in the root directory
+        raw_documents = pdf_loader.load()
 
-        self.index_name = "textembedding"
-        self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY'))
+        # Split documents into smaller chunks for processing
+        splitter = RecursiveCharacterTextSplitter(chunk_size=3000, chunk_overlap=200)
+        self.document_chunks = splitter.split_documents(raw_documents)
 
-        if self.index_name not in self.pc.list_indexes().names():
-            self.pc.create_index(
-                name=self.index_name,
-                dimension=384,
-                metric='cosine',
+        # Initialize embeddings model
+        self.embeddings_model = HuggingFaceEmbeddings()
+
+        # Define the index name and create it if necessary
+        index_name = "chatbot"  # Updated index name
+
+        # Create Pinecone index if it does not exist
+        if index_name not in pinecone.list_indexes():
+            pinecone.create_index(
+                name=index_name,
+                dimension=768,  # Adjust based on your embedding model
+                metric="cosine",
+                spec=ServerlessSpec(cloud='aws', region='us-east-1')  # Updated to us-east-1 region
             )
-            st.write(f"Index '{self.index_name}' created.")
-        else:
-            st.write(f"Index '{self.index_name}' already exists.")
 
-        self.index = self.pc.Index(self.index_name)
+        # Initialize the Pinecone vector store with the index
+        self.vector_store = Pinecone.from_documents(
+            documents=self.document_chunks,
+            embeddings=self.embeddings_model,
+            index_name=index_name
+        )
 
-    def extract_text(self):
-        try:
-            if not self.pdf_file:
-                raise ValueError("The PDF file is empty.")
+        # Define Hugging Face model for generating responses
+        self.llm = HuggingFaceHub(
+            repo_id="tiiuae/falcon-7b-instruct",  # Updated Hugging Face model
+            api_token=HUGGINGFACE_API_KEY,
+            model_kwargs={"temperature": 0.6, "top_k": 40}
+        )
 
-            doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
-            text = ""
-            for page in doc:
-                text += page.get_text("text")
+        # Define the prompt template
+        self.prompt_template = PromptTemplate(
+            input_variables=["context", "query"],
+            template=(
+                "You are a helpful assistant specializing in GPMC."
+                "\nContext: {context}\n"
+                "User Query: {query}\n\n"
+                "Response:"
+            )
+        )
 
-            if text.strip():
-                return text
-            else:
-                st.warning("No selectable text found. Using OCR to extract text from images.")
-                return self.extract_text_with_ocr(doc)
-        except Exception as e:
-            raise ValueError(f"Error extracting text from PDF: {str(e)}")
+    def get_response(self, query):
+        # Retrieve relevant documents
+        retriever = self.vector_store.as_retriever()
+        context = retriever.retrieve(query)
 
-    
-    def extract_text_from_image(self, img):
-        try:
-            text = pytesseract.image_to_string(img)
-            return text
-        except Exception as e:
-            st.error(f"Error during OCR: {str(e)}")
-            return ""
+        # Generate the response using the LLM
+        formatted_prompt = self.prompt_template.format(context=context, query=query)
+        response = self.llm.generate([formatted_prompt])[0]
 
+        return response
 
-class EmbeddingGenerator:
-    def __init__(self, model_name='all-MiniLM-L6-v2'):
-        self.model = SentenceTransformer(model_name)
+# Streamlit app setup
+st.set_page_config(page_title="Chatbot for GPMC Assistance")  # Updated title
 
-    def generate_embeddings(self, text_chunks):
-        return self.model.encode(text_chunks)
+# Sidebar configuration
+st.sidebar.title("Chatbot")
+st.sidebar.info("Ask questions about GPMC.")
 
-def store_embeddings(index, embeddings, metadata, retries=3, delay=2):
-    upsert_data = []
-    for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray):
-            embedding = embedding.tolist()
+# Chatbot instance initialization
+@st.cache_resource
+def initialize_chatbot():
+    return GPMCChatbot()
 
-        id = f'doc-{i}'
-        metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
+# Main application logic
+chatbot = initialize_chatbot()
 
-        upsert_data.append((id, embedding, metadata_dict))
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [{"role": "assistant", "content": "Hello! How can I assist you with the GPMC today?"}]
 
-    st.write(f"Preparing to upsert {len(upsert_data)} vectors.")
-    for attempt in range(retries):
-        try:
-            response = index.upsert(vectors=upsert_data)
-            st.write(f"Upsert response: {response}")
+# Display chat history
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
 
-            if response.get("upserted", 0) > 0:
-                st.write(f"Successfully upserted {response['upserted']} vectors.")
-            else:
-                st.error("No vectors were upserted.")
-            break
-        except Exception as e:
-            st.error(f"Error during Pinecone upsert: {str(e)}")
-            if attempt < retries - 1:
-                st.write(f"Retrying in {delay} seconds...")
-                time.sleep(delay)
-            else:
-                st.error("Max retries reached. Please check the service status.")
+# Process user input
+user_input = st.chat_input("Type your query here...")
+if user_input:
+    st.session_state.chat_history.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.write(user_input)
 
-uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
-
-if uploaded_file:
-    loader = PDFLoader(uploaded_file)
-    text_chunks = [doc.page_content for doc in loader.docs]
-
-    embedding_generator = EmbeddingGenerator()
-    embeddings = embedding_generator.generate_embeddings(text_chunks)
-
-    st.write(f"Generated embeddings: {embeddings[:2]}")
-    st.write(f"Shape of embeddings: {np.array(embeddings).shape}")
-
-    metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(embeddings))]
-
-    store_embeddings(loader.index, embeddings, metadata)
+    with st.chat_message("assistant"):
+        with st.spinner("Fetching response..."):
+            try:
+                bot_response = chatbot.get_response(user_input)
+            except Exception as e:
+                bot_response = f"An error occurred: {str(e)}"
+            st.write(bot_response)
+            st.session_state.chat_history.append({"role": "assistant", "content": bot_response})
