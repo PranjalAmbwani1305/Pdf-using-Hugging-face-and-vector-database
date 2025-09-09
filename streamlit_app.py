@@ -11,9 +11,18 @@ import pytesseract
 from PIL import Image
 import io
 
-# Load API keys from Streamlit secrets
-os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
-os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
+# --- Load API keys ---
+pinecone_api_key = st.secrets.get("PINECONE_API_KEY", None)
+huggingface_api_key = st.secrets.get("HUGGINGFACE_API_KEY", None)
+
+if not pinecone_api_key:
+    st.error("🚨 Pinecone API key is missing in Streamlit secrets!")
+if not huggingface_api_key:
+    st.warning("⚠️ HuggingFace API key is missing. (Only needed if using HF-hosted embeddings)")
+
+os.environ['PINECONE_API_KEY'] = pinecone_api_key or ""
+os.environ['HUGGINGFACE_API_KEY'] = huggingface_api_key or ""
+
 
 class PDFLoader:
     def __init__(self, pdf_file):
@@ -28,14 +37,25 @@ class PDFLoader:
         self.index_name = "textembedding"
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY'))
 
-        indexes = [idx['name'] for idx in self.pc.list_indexes()]
-        if self.index_name not in indexes:
-            self.pc.create_index(name=self.index_name, dimension=384, metric='cosine')
-            st.write(f"✅ Created Pinecone index: `{self.index_name}`")
-        else:
-            st.write(f"ℹ️ Pinecone index `{self.index_name}` already exists.")
+        # Ensure index exists & is ready
+        self.ensure_index_ready()
 
         self.index = self.pc.Index(self.index_name)
+
+    def ensure_index_ready(self):
+        indexes = [idx['name'] for idx in self.pc.list_indexes()]
+        if self.index_name not in indexes:
+            st.write(f"🆕 Creating Pinecone index `{self.index_name}` (dimension=384)...")
+            self.pc.create_index(name=self.index_name, dimension=384, metric='cosine')
+
+        st.write("⏳ Checking Pinecone index readiness...")
+        while True:
+            status = self.pc.describe_index(self.index_name)['status']['ready']
+            if status:
+                st.write(f"✅ Pinecone index `{self.index_name}` is ready.")
+                break
+            st.write("...still waiting for index to be ready...")
+            time.sleep(2)
 
     def extract_text(self):
         try:
@@ -75,31 +95,34 @@ class EmbeddingGenerator:
 
 
 def store_embeddings(index, embeddings, metadata, batch_size=100, retries=3, delay=2):
-    upsert_data = []
-    for i, embedding in enumerate(embeddings):
-        upsert_data.append((f"doc-{i}", embedding.tolist(), metadata[i]))
+    if len(embeddings) == 0:
+        st.error("❌ No embeddings to store.")
+        return
 
-    st.write(f"📦 Preparing to upsert {len(upsert_data)} vectors in batches of {batch_size}.")
+    upsert_data = [(f"doc-{i}", emb.tolist(), metadata[i]) for i, emb in enumerate(embeddings)]
+
+    st.write(f"📦 Preparing to upsert {len(upsert_data)} vectors...")
 
     for batch_start in range(0, len(upsert_data), batch_size):
         batch = upsert_data[batch_start: batch_start + batch_size]
         for attempt in range(retries):
             try:
                 response = index.upsert(vectors=batch)
-                st.write(f"✅ Upserted batch {batch_start // batch_size + 1}, response: {response}")
+                count = response.get("upserted_count", 0)
+                st.write(f"✅ Batch {batch_start // batch_size + 1} → Upserted {count} vectors")
                 break
             except Exception as e:
                 wait_time = delay * (2 ** attempt)
-                st.error(f"⚠️ Error during Pinecone upsert: {str(e)}")
+                st.error(f"⚠️ Pinecone upsert error: {str(e)}")
                 if attempt < retries - 1:
-                    st.write(f"Retrying in {wait_time} seconds...")
+                    st.write(f"Retrying in {wait_time}s...")
                     time.sleep(wait_time)
                 else:
                     st.error("🚨 Max retries reached. Skipping this batch.")
 
 
-# Streamlit UI
-st.title("📄 PDF to Pinecone Embedding Uploader")
+# --- Streamlit UI ---
+st.title("📄 PDF → Pinecone Embedding Uploader")
 
 uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
@@ -107,13 +130,21 @@ if uploaded_file:
     loader = PDFLoader(uploaded_file)
     text_chunks = [doc.page_content for doc in loader.docs]
 
-    embedding_generator = EmbeddingGenerator()
-    embeddings = embedding_generator.generate_embeddings(text_chunks)
+    if len(text_chunks) == 0:
+        st.error("❌ No text could be extracted from the PDF.")
+    else:
+        st.write(f"📝 Extracted {len(text_chunks)} chunks from PDF.")
 
-    st.write(f"🔢 Generated {embeddings.shape[0]} embeddings with dimension {embeddings.shape[1]}")
-    st.write("🧾 Example embedding vector:", embeddings[0][:10])
+        embedding_generator = EmbeddingGenerator()
+        embeddings = embedding_generator.generate_embeddings(text_chunks)
 
-    metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(text_chunks))]
+        st.write(f"🔢 Generated embeddings with shape: {embeddings.shape}")
+        if embeddings.shape[1] != 384:
+            st.error(f"🚨 Embedding dimension mismatch! Expected 384, got {embeddings.shape[1]}")
+        else:
+            st.write("🧾 Example embedding vector:", embeddings[0][:10])
 
-    store_embeddings(loader.index, embeddings, metadata)
-    st.success("🎉 All embeddings uploaded successfully!")
+            metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(text_chunks))]
+            store_embeddings(loader.index, embeddings, metadata)
+
+            st.success("🎉 All embeddings uploaded successfully!")
