@@ -1,5 +1,6 @@
 pymupdf 
 sentence-transformers 
+pinecone
 pinecone-client>=2.1.0
 streamlit
 huggingface_hub
