@@ -1,5 +1,5 @@
 import streamlit as st
-import fitz  
+import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone as PineconeClient
 import os
@@ -11,6 +11,7 @@ import pytesseract
 from PIL import Image
 import io
 
+# Load API keys from Streamlit secrets
 os.environ['HUGGINGFACE_API_KEY'] = st.secrets["HUGGINGFACE_API_KEY"]
 os.environ['PINECONE_API_KEY'] = st.secrets["PINECONE_API_KEY"]
 
@@ -21,49 +22,47 @@ class PDFLoader:
         self.pdf_file = pdf_file
         self.extracted_text = self.extract_text()
 
-        text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=4)
+        text_splitter = CharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
         self.docs = text_splitter.split_documents([Document(page_content=self.extracted_text)])
 
         self.index_name = "textembedding"
         self.pc = PineconeClient(api_key=os.getenv('PINECONE_API_KEY'))
 
-        if self.index_name not in self.pc.list_indexes().names():
-            self.pc.create_index(
-                name=self.index_name,
-                dimension=384,
-                metric='cosine',
-            )
-            st.write(f"Index '{self.index_name}' created.")
+        indexes = [idx['name'] for idx in self.pc.list_indexes()]
+        if self.index_name not in indexes:
+            self.pc.create_index(name=self.index_name, dimension=384, metric='cosine')
+            st.write(f"✅ Created Pinecone index: `{self.index_name}`")
         else:
-            st.write(f"Index '{self.index_name}' already exists.")
+            st.write(f"ℹ️ Pinecone index `{self.index_name}` already exists.")
 
         self.index = self.pc.Index(self.index_name)
 
     def extract_text(self):
         try:
-            if not self.pdf_file:
-                raise ValueError("The PDF file is empty.")
-
             doc = fitz.open(stream=self.pdf_file.read(), filetype="pdf")
-            text = ""
-            for page in doc:
-                text += page.get_text("text")
+            text = "".join(page.get_text("text") for page in doc)
 
             if text.strip():
                 return text
             else:
-                st.warning("No selectable text found. Using OCR to extract text from images.")
+                st.warning("No selectable text found. Using OCR...")
                 return self.extract_text_with_ocr(doc)
         except Exception as e:
             raise ValueError(f"Error extracting text from PDF: {str(e)}")
 
-    
+    def extract_text_with_ocr(self, doc):
+        text = ""
+        for page_index in range(len(doc)):
+            pix = doc[page_index].get_pixmap()
+            img = Image.open(io.BytesIO(pix.tobytes("png")))
+            text += self.extract_text_from_image(img)
+        return text
+
     def extract_text_from_image(self, img):
         try:
-            text = pytesseract.image_to_string(img)
-            return text
+            return pytesseract.image_to_string(img)
         except Exception as e:
-            st.error(f"Error during OCR: {str(e)}")
+            st.error(f"OCR error: {str(e)}")
             return ""
 
 
@@ -72,37 +71,35 @@ class EmbeddingGenerator:
         self.model = SentenceTransformer(model_name)
 
     def generate_embeddings(self, text_chunks):
-        return self.model.encode(text_chunks)
+        return np.array(self.model.encode(text_chunks, show_progress_bar=True))
 
-def store_embeddings(index, embeddings, metadata, retries=3, delay=2):
+
+def store_embeddings(index, embeddings, metadata, batch_size=100, retries=3, delay=2):
     upsert_data = []
     for i, embedding in enumerate(embeddings):
-        if isinstance(embedding, np.ndarray):
-            embedding = embedding.tolist()
+        upsert_data.append((f"doc-{i}", embedding.tolist(), metadata[i]))
 
-        id = f'doc-{i}'
-        metadata_dict = metadata[i] if isinstance(metadata[i], dict) else {}
+    st.write(f"📦 Preparing to upsert {len(upsert_data)} vectors in batches of {batch_size}.")
 
-        upsert_data.append((id, embedding, metadata_dict))
+    for batch_start in range(0, len(upsert_data), batch_size):
+        batch = upsert_data[batch_start: batch_start + batch_size]
+        for attempt in range(retries):
+            try:
+                response = index.upsert(vectors=batch)
+                st.write(f"✅ Upserted batch {batch_start // batch_size + 1}, response: {response}")
+                break
+            except Exception as e:
+                wait_time = delay * (2 ** attempt)
+                st.error(f"⚠️ Error during Pinecone upsert: {str(e)}")
+                if attempt < retries - 1:
+                    st.write(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    st.error("🚨 Max retries reached. Skipping this batch.")
 
-    st.write(f"Preparing to upsert {len(upsert_data)} vectors.")
-    for attempt in range(retries):
-        try:
-            response = index.upsert(vectors=upsert_data)
-            st.write(f"Upsert response: {response}")
 
-            if response.get("upserted", 0) > 0:
-                st.write(f"Successfully upserted {response['upserted']} vectors.")
-            else:
-                st.error("No vectors were upserted.")
-            break
-        except Exception as e:
-            st.error(f"Error during Pinecone upsert: {str(e)}")
-            if attempt < retries - 1:
-                st.write(f"Retrying in {delay} seconds...")
-                time.sleep(delay)
-            else:
-                st.error("Max retries reached. Please check the service status.")
+# Streamlit UI
+st.title("📄 PDF to Pinecone Embedding Uploader")
 
 uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
@@ -113,9 +110,10 @@ if uploaded_file:
     embedding_generator = EmbeddingGenerator()
     embeddings = embedding_generator.generate_embeddings(text_chunks)
 
-    st.write(f"Generated embeddings: {embeddings[:2]}")
-    st.write(f"Shape of embeddings: {np.array(embeddings).shape}")
+    st.write(f"🔢 Generated {embeddings.shape[0]} embeddings with dimension {embeddings.shape[1]}")
+    st.write("🧾 Example embedding vector:", embeddings[0][:10])
 
-    metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(embeddings))]
+    metadata = [{"chunk_index": i, "source": "uploaded_pdf"} for i in range(len(text_chunks))]
 
-    store_embeddings(loader.index, embeddings, metadata)              
+    store_embeddings(loader.index, embeddings, metadata)
+    st.success("🎉 All embeddings uploaded successfully!")
